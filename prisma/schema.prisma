@@ -1,0 +1,68 @@
+// LinguaLab — users, progress, and admin-managed content
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  displayName  String
+  passwordHash String
+  salt         String
+  role         Role     @default(STUDENT)
+  /// New admins need approval from an existing admin (seed admins start approved).
+  approved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  progress     Progress?
+}
+
+model Progress {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Full AppState JSON (progress, history, placement, skills, …)
+  state     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// Admin-managed lessons (seeded from built-in catalog; overrides replace by id).
+model ContentLesson {
+  id        String   @id
+  language  String   @default("en")
+  level     String
+  title     String
+  published Boolean  @default(true)
+  /// Full CourseLesson JSON (or tombstone when deleted=true)
+  payload   Json
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([language, level])
+}
+
+/// Admin-managed short stories.
+model ContentStory {
+  id        String   @id
+  language  String   @default("en")
+  level     String
+  title     String
+  published Boolean  @default(true)
+  payload   Json
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([language, level])
+}
